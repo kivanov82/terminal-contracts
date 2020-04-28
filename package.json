@@ -1,0 +1,26 @@
+{
+  "name": "terminal-contracts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kivanov82/terminal-contracts.git"
+  },
+  "author": "Highbridge",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kivanov82/terminal-contracts/issues"
+  },
+  "homepage": "https://github.com/kivanov82/terminal-contracts#readme",
+  "dependencies": {
+    "openzeppelin-solidity": "^2.5.0",
+    "truffle-hdwallet-provider": "^1.0.17"
+  }
+}
