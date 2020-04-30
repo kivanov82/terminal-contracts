@@ -87,10 +87,12 @@ contract TrainDelay is SignerRole, Pausable {
         }
 
         uint256[2] memory premiumMultipliers = underwriter.getOrCreateRisk(trainNumber, departureTime, arrivalTime, punctuality, plannedOffset);
-        trip.cumulatedWeightedPayout = trip.cumulatedWeightedPayout.add(premium.mul(premiumMultipliers[1]));
+        trip.cumulatedWeightedPayout = trip.cumulatedWeightedPayout.add(premium.mul(premiumMultipliers[1]).div(underwriter.getPrecision()));
         require(trip.cumulatedWeightedPayout <= underwriter.maxCumulatedPayout(), "TrainDelay: trip risk limit");
 
-        Application memory application = Application(holder, premium, premium.mul(premiumMultipliers[0]), premium.mul(premiumMultipliers[1]));
+        Application memory application = Application(holder, premium,
+            premium.mul(premiumMultipliers[0]).div(underwriter.getPrecision()),
+            premium.mul(premiumMultipliers[1]).div(underwriter.getPrecision()));
         trip.applications.push(application);
 
         address(vault).transfer(premium);
@@ -132,10 +134,14 @@ contract TrainDelay is SignerRole, Pausable {
 
 interface IUnderwriter {
 
+    function getRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality, uint256 plannedOffset) external view returns (uint256[2] memory);
+
     function getOrCreateRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality, uint256 plannedOffset) external returns (uint256[2] memory);
 
     function validPremium(uint256 premium) external view returns (bool);
 
     function maxCumulatedPayout() external view returns (uint256);
+
+    function getPrecision() external view returns (uint256);
 
 }
