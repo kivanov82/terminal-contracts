@@ -7,13 +7,13 @@ contract Underwriter is SignerRole {
 
     using SafeMath for uint256;
 
-    uint256 public constant MIN_PREMIUM = 10 finney;
-    uint256 public constant MAX_PREMIUM = 150 finney;
+    uint256 public constant MIN_PREMIUM = 10 finney;    //0.01 ETH
+    uint256 public constant MAX_PREMIUM = 150 finney;   //0.12 ETH
     // Maximum cumulated weighted premium per trip
     uint256 public constant MAX_CUMULATED_WEIGHTED_PAYOUT = 5 ether;
 
-    // ['60+', '120+', 'cancelled']
-    uint8[3] public WEIGHT_PATTERN = [10, 30, 100];
+    // ['60', '120', 'cancelled']
+    uint8[3] public WEIGHT_PATTERN = [0, 30, 100];
 
     struct Risk {
         bytes32 trainNumber;
@@ -26,6 +26,7 @@ contract Underwriter is SignerRole {
 
     event RiskCreated
     (
+        address author,
         bytes32 riskId,
         bytes32 trainNumber,
         uint256 departureTime,
@@ -33,17 +34,17 @@ contract Underwriter is SignerRole {
         uint256[2] premiumMultipliers
     );
 
-    function getOrCreateRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality, uint256 plannedOffset) external onlySigner returns (uint256[2] memory) {
+    function getOrCreateRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality, uint256 plannedOffset) external returns (uint256[2] memory) {
         bytes32 riskId = getRiskId(trainNumber, departureTime, arrivalTime);
         Risk storage risk = risks[riskId];
         if (risk.trainNumber == '') {
-            return risk.premiumMultipliers;
-        } else {
             return createRisk(trainNumber, departureTime, arrivalTime, punctuality, plannedOffset);
+        } else {
+            return risk.premiumMultipliers;
         }
     }
 
-    function createRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality, uint256 plannedOffset) public onlySigner returns (uint256[2] memory) {
+    function createRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality, uint256 plannedOffset) public returns (uint256[2] memory) {
         bytes32 riskId = getRiskId(trainNumber, departureTime, arrivalTime);
         Risk storage risk = risks[riskId];
         uint8 weightFrom;
@@ -52,7 +53,7 @@ contract Underwriter is SignerRole {
         }
         risk.trainNumber = trainNumber;
         risk.premiumMultipliers = [5, 10];
-        emit RiskCreated(riskId, trainNumber, departureTime, arrivalTime, risk.premiumMultipliers);
+        emit RiskCreated(msg.sender, riskId, trainNumber, departureTime, arrivalTime, risk.premiumMultipliers);
         return risk.premiumMultipliers;
     }
 

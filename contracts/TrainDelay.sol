@@ -42,7 +42,14 @@ contract TrainDelay is SignerRole, Pausable {
         uint256 arrivalTime,
         uint256 punctuality,
         uint256 plannedOffset,
-        uint256[] premiumMultipliers
+        uint256[2] premiumMultipliers
+    );
+
+    event ApplicationResolved
+    (
+        address payable holder,
+        uint256 payout,
+        bytes32 tripId
     );
 
 
@@ -67,6 +74,7 @@ contract TrainDelay is SignerRole, Pausable {
         uint256 plannedOffset
     ) external payable whenNotPaused {
         uint256 premium = msg.value;
+        address payable holder = msg.sender;
         require(underwriter.validPremium(premium), "TrainDelay: invalid premium");
 
         bytes32 tripId = keccak256(
@@ -78,26 +86,35 @@ contract TrainDelay is SignerRole, Pausable {
             trip.trainNumber = trainNumber;
         }
 
-        uint256[] memory premiumMultipliers;
-        premiumMultipliers[0] = 5;
-        premiumMultipliers[1] = 10;
-        //uint256[2] memory premiumMultiplier = underwriter.getOrCreateRisk(trainNumber, departureTime, arrivalTime, punctuality, plannedOffset);
+        uint256[2] memory premiumMultipliers = underwriter.getOrCreateRisk(trainNumber, departureTime, arrivalTime, punctuality, plannedOffset);
         trip.cumulatedWeightedPayout = trip.cumulatedWeightedPayout.add(premium.mul(premiumMultipliers[1]));
-        require(trip.cumulatedWeightedPayout <= underwriter.maxCumulatedPayout(), "TrainDelay: risk limit");
+        require(trip.cumulatedWeightedPayout <= underwriter.maxCumulatedPayout(), "TrainDelay: trip risk limit");
 
-        Application memory application = Application(msg.sender, premium, premium.mul(premiumMultipliers[0]), premium.mul(premiumMultipliers[1]));
+        Application memory application = Application(holder, premium, premium.mul(premiumMultipliers[0]), premium.mul(premiumMultipliers[1]));
         trip.applications.push(application);
 
         address(vault).transfer(premium);
-        emit ApplicationCreated(msg.sender, tripId, trainNumber, departureTime, arrivalTime, punctuality, plannedOffset, premiumMultipliers);
-
+        emit ApplicationCreated(holder, tripId, trainNumber, departureTime, arrivalTime, punctuality, plannedOffset, premiumMultipliers);
     }
 
-    function claimDelegated(bytes32 tripId, address payable holder) external onlySigner {
-
+    function claimTripDelegated(bytes32 tripId, bytes32 cause) external onlySigner {
+        for (uint8 i = 0; i < trips[tripId].applications.length; i++) {
+            Application memory application = trips[tripId].applications[i];
+            if (cause == '120') {
+                withdrawVault(application.payout120, application.holder);
+                emit ApplicationResolved(application.holder, application.payout120, tripId);
+            } else if (cause == 'cancelled') {
+                withdrawVault(application.payoutCancelled, application.holder);
+                emit ApplicationResolved(application.holder, application.payoutCancelled, tripId);
+            }
+            else {
+                require(false, 'TrainDelay: cause not supported');
+            }
+        }
+        resolveTrip(tripId);
     }
 
-    function resolveTrip(bytes32 tripId) public onlySigner {
+    function resolveTrip(bytes32 tripId) internal onlySigner {
         delete trips[tripId];
     }
 
