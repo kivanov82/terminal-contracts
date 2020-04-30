@@ -28,7 +28,7 @@ contract('Underwriter', async (accounts) => {
     it("should create risk", async () => {
         let tx = await underwriter.createRisk(web3.utils.asciiToHex('IC123'), timestamp_1, timestamp_2, 50000, 60);
         truffleAssert.eventEmitted(tx, 'RiskCreated', (ev) => {
-            console.log('New risk! Multipliers: ' + ev.premiumMultipliers[0].toString() + ' and ' + ev.premiumMultipliers[1].toString());
+            console.log('New risk! Multipliers: x' + ev.premiumMultipliers[0].toString() + ' and x' + ev.premiumMultipliers[1].toString());
             return ev.premiumMultipliers.length === 2;
         }, 'RiskCreated should be emitted with correct parameters');
     })
