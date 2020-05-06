@@ -61,7 +61,8 @@ contract TrainDelay is SignerRole, Pausable {
     }
 
     constructor (address payable underwriterAddress) public {
-        vault = new Vault();
+        vault = new Vault(msg.sender);
+        vault.addWhitelistAdmin(msg.sender);
         underwriter = IUnderwriter(underwriterAddress);
     }
 
