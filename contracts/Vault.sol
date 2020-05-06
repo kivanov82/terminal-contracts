@@ -2,10 +2,12 @@ pragma solidity ^0.5.8;
 
 import "openzeppelin-solidity/contracts/access/roles/WhitelistedRole.sol";
 import "./ReInsuranceProvider.sol";
+import "./ERC20.sol";
 
 contract Vault is WhitelistedRole {
 
     ReInsuranceProvider public reInsuranceProvider;
+    ERC20 public token;
 
     event LogEthReceived(
         uint256 amount,
@@ -24,8 +26,9 @@ contract Vault is WhitelistedRole {
         emit LogEthReceived(msg.value, msg.sender);
     }
 
-    constructor (address _operator) public {
-        reInsuranceProvider = new ReInsuranceProvider(_operator);
+    constructor (address _operator, address _adai, address _aavePool, address _aaveCore, address _dai) public {
+        token = ERC20(_dai);
+        reInsuranceProvider = new ReInsuranceProvider(_operator, _adai, _aavePool, _aaveCore, _dai);
         reInsuranceProvider.addWhitelistAdmin(_operator);
     }
 
@@ -41,5 +44,9 @@ contract Vault is WhitelistedRole {
 
     function withdrawReserve(uint _amount) public onlyWhitelistAdmin {
         reInsuranceProvider.withdraw(address(this), _amount);
+    }
+
+    function balance() external view returns (uint256 balance) {
+        return token.balanceOf(address(this));
     }
 }

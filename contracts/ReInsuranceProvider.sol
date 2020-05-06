@@ -7,18 +7,25 @@ import "./ERC20.sol";
 
 contract ReInsuranceProvider is WhitelistedRole {
 
-    address public constant ADAI_ADDRESS = 0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d;
-    address public constant AAVE_LENDING_POOL = 0x398eC7346DcD622eDc5ae82352F02bE94C62d119;
-    address public constant AAVE_LENDING_POOL_CORE = 0x3dfd23A6c5E8BbcFc9581d2E864a68feb6a076d3;
-    address public constant DAI_ADDRESS = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+    address public ADAI_ADDRESS;
+    address public AAVE_LENDING_POOL;
+    address public AAVE_LENDING_POOL_CORE;
+    address public DAI_ADDRESS;
 
-    constructor (address _operator) public {
+    address operator;
+
+    constructor (address _operator, address _adai, address _aavePool, address _aaveCore, address _dai) public {
+        operator = _operator;
+        ADAI_ADDRESS = _adai;
+        AAVE_LENDING_POOL = _aavePool;
+        AAVE_LENDING_POOL_CORE = _aaveCore;
+        DAI_ADDRESS = _dai;
         IAToken(ADAI_ADDRESS).redirectInterestStream(_operator);
     }
 
     function deposit(address _user, uint _amount) public onlyWhitelistAdmin {
         require(msg.sender == _user);
-        // get dai from user
+        // temporary move token into here
         require(ERC20(DAI_ADDRESS).transferFrom(_user, address(this), _amount));
 
         ERC20(DAI_ADDRESS).approve(AAVE_LENDING_POOL_CORE, uint(- 1));
@@ -37,5 +44,14 @@ contract ReInsuranceProvider is WhitelistedRole {
 
         // return dai we have to user
         ERC20(DAI_ADDRESS).transfer(_user, _amount);
+    }
+
+    function getLendingAPY() external view returns (uint256) {
+        (,,,,uint256 liquidityRate,,,,,,,,) = ILendingPool(AAVE_LENDING_POOL).getReserveData(DAI_ADDRESS);
+        return liquidityRate;
+    }
+
+    function getLifetimeProfit() external view returns (uint256) {
+        return ERC20(ADAI_ADDRESS).balanceOf(operator);
     }
 }
