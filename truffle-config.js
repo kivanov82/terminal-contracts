@@ -22,6 +22,7 @@ const HDWalletProvider = require('truffle-hdwallet-provider');
 
 const fs = require('fs');
 const infuraKey = fs.readFileSync(".secretInfura").toString().trim();
+const mnemonicGanache = fs.readFileSync(".mnemonicGanache").toString().trim();
 const mnemonicRinkeby = fs.readFileSync(".mnemonicTest").toString().trim();
 const mnemonicRopsten = fs.readFileSync(".mnemonicTest").toString().trim();
 const mnemonicMain = fs.readFileSync(".mnemonicMain").toString().trim();
@@ -30,12 +31,12 @@ module.exports = {
 
   networks: {
     development: {
+      //provider: () => new HDWalletProvider(mnemonicGanache, `http://127.0.0.1:8545`), // ganache-cli
       host: "127.0.0.1",     // Localhost (default: none)
       port: 7545,            // Standard Ethereum port (default: none)
       network_id: "*",       // Any network (default: none)
       gas: 6550000,
     },
-
     rinkeby: {
       provider: () => new HDWalletProvider(mnemonicRinkeby, `https://rinkeby.infura.io/v3/${infuraKey}`),
       network_id: 4,       // Rinkeby's id
@@ -46,6 +47,7 @@ module.exports = {
     },
     ropsten: {
       provider: () => new HDWalletProvider(mnemonicRinkeby, `https://ropsten.infura.io/v3/${infuraKey}`),
+      gasPrice: 30000000000, //30Gwei
       network_id: 3,
       gas: 6550000,
       confirmations: 0,    // # of confs to wait between deployments. (default: 0)

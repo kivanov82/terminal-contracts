@@ -26,9 +26,9 @@ contract Vault is WhitelistedRole {
         emit LogEthReceived(msg.value, msg.sender);
     }
 
-    constructor (address _operator, address _adai, address _aavePool, address _aaveCore, address _dai) public {
+    constructor (address _operator, address _adai, address _aaveProvider, address _dai, uint16 _referralCode) public {
         token = ERC20(_dai);
-        reInsuranceProvider = new ReInsuranceProvider(_operator, _adai, _aavePool, _aaveCore, _dai);
+        reInsuranceProvider = new ReInsuranceProvider(_operator, _adai, _aaveProvider, _dai, _referralCode);
         reInsuranceProvider.addWhitelistAdmin(_operator);
     }
 
@@ -38,11 +38,12 @@ contract Vault is WhitelistedRole {
         emit LogEthSent(_payment, _operator);
     }
 
-    function depositReserve(uint _amount) public onlyWhitelistAdmin {
+    function depositResinsurance(uint _amount) public onlyWhitelistAdmin {
+        token.approve(address(reInsuranceProvider), _amount);
         reInsuranceProvider.deposit(address(this), _amount);
     }
 
-    function withdrawReserve(uint _amount) public onlyWhitelistAdmin {
+    function withdrawResinsurance(uint _amount) public onlyWhitelistAdmin {
         reInsuranceProvider.withdraw(address(this), _amount);
     }
 
