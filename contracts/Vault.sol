@@ -19,6 +19,11 @@ contract Vault is WhitelistedRole {
         address indexed account
     );
 
+    event LogTokenSent(
+        uint256 amount,
+        address indexed account
+    );
+
     /**
     * @dev funding vault is allowed
     **/
@@ -32,7 +37,13 @@ contract Vault is WhitelistedRole {
         reInsuranceProvider.addWhitelistAdmin(_operator);
     }
 
-    function withdraw(address payable _operator, uint256 _payment) public onlyWhitelistAdmin {
+    function withdrawDAI(uint256 _payment) public onlyWhitelistAdmin {
+        require(_payment > 0 && token.balanceOf(address(this)) >= _payment, "Insufficient funds in the fund");
+        token.transfer(msg.sender, _payment);
+        emit LogTokenSent(_payment, msg.sender);
+    }
+
+    function withdrawETH(address payable _operator, uint256 _payment) public onlyWhitelistAdmin {
         require(address(this).balance > 0, 'Vault is empty');
         _operator.transfer(_payment);
         emit LogEthSent(_payment, _operator);

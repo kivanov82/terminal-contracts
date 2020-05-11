@@ -123,7 +123,7 @@ contract TrainDelay is SignerRole, Pausable {
 
     function withdrawVault(uint256 amount, address payable intermediary) public onlySigner {
         require(intermediary != address(0));
-        vault.withdraw(intermediary, amount);
+        vault.withdrawETH(intermediary, amount);
     }
 
 

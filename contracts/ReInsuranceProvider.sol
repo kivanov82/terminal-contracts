@@ -20,6 +20,7 @@ contract ReInsuranceProvider is WhitelistedRole {
     uint16 referralCode;
 
     mapping(address => uint256) private userReserves;
+    uint256 private reserves;
 
     address operator;
 
@@ -28,7 +29,7 @@ contract ReInsuranceProvider is WhitelistedRole {
         aaveAddressesProvider = ILendingPoolAddressesProvider(_aaveProvider);
         ADAI_ADDRESS = _adai;
         AAVE_LENDING_POOL = aaveAddressesProvider.getLendingPool();
-        //AAVE_LENDING_POOL_CORE = aaveAddressesProvider.getLendingPoolCore();
+        AAVE_LENDING_POOL_CORE = aaveAddressesProvider.getLendingPoolCore();
         DAI_ADDRESS = _dai;
         referralCode = _referralCode;
     }
@@ -47,6 +48,8 @@ contract ReInsuranceProvider is WhitelistedRole {
         }
 
         userReserves[_user] = userReserves[_user].add(_amount);
+        reserves = reserves.add(_amount);
+
         ERC20(ADAI_ADDRESS).transfer(_user, ERC20(ADAI_ADDRESS).balanceOf(address(this)));
     }
 
@@ -62,10 +65,15 @@ contract ReInsuranceProvider is WhitelistedRole {
         ERC20(DAI_ADDRESS).transfer(_user, _amount);
 
         userReserves[_user] = userReserves[_user].sub(_amount, "ReInsuranceProvider: withdraw amount exceeds deposited");
+        reserves = reserves.sub(_amount);
     }
 
     function reserveOf(address account) public view returns (uint256) {
         return userReserves[account];
+    }
+
+    function reserve() public view returns (uint256) {
+        return reserves;
     }
 
     function getLendingAPY() external view returns (uint256) {
