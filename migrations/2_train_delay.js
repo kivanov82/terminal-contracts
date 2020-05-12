@@ -1,6 +1,6 @@
 var TrainDelay = artifacts.require("TrainDelay");
 var Underwriter = artifacts.require("Underwriter");
-var ReInsuranceProvider = artifacts.require("ReInsuranceProvider");
+var ReInsuranceVault = artifacts.require("ReInsuranceVault");
 
 const empty_address = '0x0000000000000000000000000000000000000000';
 

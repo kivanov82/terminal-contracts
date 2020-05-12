@@ -7,7 +7,7 @@ import "./aave/IAToken.sol";
 import "./ERC20.sol";
 import "./aave/ILendingPoolAddressesProvider.sol";
 
-contract ReInsuranceProvider is WhitelistedRole {
+contract ReInsuranceVault is WhitelistedRole {
 
     using SafeMath for uint256;
 
@@ -18,9 +18,6 @@ contract ReInsuranceProvider is WhitelistedRole {
     address public AAVE_LENDING_POOL_CORE;
     address public DAI_ADDRESS;
     uint16 referralCode;
-
-    mapping(address => uint256) private userReserves;
-    uint256 private reserves;
 
     address operator;
 
@@ -34,46 +31,50 @@ contract ReInsuranceProvider is WhitelistedRole {
         referralCode = _referralCode;
     }
 
-    function deposit(address _user, uint _amount) public onlyWhitelistAdmin {
-        require(msg.sender == _user);
-        // temporary move token into here
+    /**
+    * @dev Msg.sender deposits DAI into here, and the actual interest will be forwarded to 'operator'
+    * Usually called by the Vault which holds DAI
+    **/
+    function deposit(uint _amount) public onlyWhitelistAdmin {
+        address _user = msg.sender;
+        // move token into here
         require(ERC20(DAI_ADDRESS).transferFrom(_user, address(this), _amount));
 
         ERC20(DAI_ADDRESS).approve(AAVE_LENDING_POOL_CORE, uint(- 1));
         ILendingPool(AAVE_LENDING_POOL).deposit(DAI_ADDRESS, _amount, referralCode);
-        if (IAToken(ADAI_ADDRESS).getInterestRedirectionAddress(operator) == address(0)) {
-            //first deposit ever
-            //start redirecting interest
+        if (IAToken(ADAI_ADDRESS).getInterestRedirectionAddress(address(this)) == address(0)) {
+            //first deposit
+            //start redirecting interest to 'operator'
             IAToken(ADAI_ADDRESS).redirectInterestStream(operator);
         }
-
-        userReserves[_user] = userReserves[_user].add(_amount);
-        reserves = reserves.add(_amount);
-
-        ERC20(ADAI_ADDRESS).transfer(_user, ERC20(ADAI_ADDRESS).balanceOf(address(this)));
     }
 
-    function withdraw(address _user, uint _amount) public onlyWhitelistAdmin {
-        require(msg.sender == _user);
-        require(ERC20(ADAI_ADDRESS).transferFrom(_user, address(this), _amount));
+    /**
+    * @dev Msg.sender triggers the withdrawal from Aave, the DAI will be moved to the caller
+    * Usually called by the Vault
+    **/
+    function withdraw(uint _amount) public onlyWhitelistAdmin {
+        address _user = msg.sender;
 
-        //not used as a collateral
-        require(IAToken(ADAI_ADDRESS).isTransferAllowed(_user, _amount));
+        //if not used as a collateral
+        require(IAToken(ADAI_ADDRESS).isTransferAllowed(address(this), _amount));
         IAToken(ADAI_ADDRESS).redeem(_amount);
 
         // return dai we have to user
         ERC20(DAI_ADDRESS).transfer(_user, _amount);
-
-        userReserves[_user] = userReserves[_user].sub(_amount, "ReInsuranceProvider: withdraw amount exceeds deposited");
-        reserves = reserves.sub(_amount);
     }
 
-    function reserveOf(address account) public view returns (uint256) {
-        return userReserves[account];
+    /**
+    * @dev Operator withdraws his interest, receiving DAI back
+    **/
+    function withdrawInterest(uint _amount) public onlyWhitelistAdmin {
+        //temporary move aDAI into here
+        require(ERC20(ADAI_ADDRESS).transferFrom(msg.sender, address(this), _amount));
+        withdraw(_amount);
     }
 
-    function reserve() public view returns (uint256) {
-        return reserves;
+    function balance() external view returns (uint256) {
+        return IAToken(ADAI_ADDRESS).balanceOf(address(this));
     }
 
     function getLendingAPY() external view returns (uint256) {
@@ -81,6 +82,10 @@ contract ReInsuranceProvider is WhitelistedRole {
         return liquidityRate;
     }
 
+    /**
+    * @dev Sums up (current) differences between cumulated aToken balance and historic deposit
+    * And sums it up for every depositor
+    **/
     function getLifetimeProfit() external view returns (uint256) {
         //TODO not really accurate data
         return ERC20(ADAI_ADDRESS).balanceOf(operator);

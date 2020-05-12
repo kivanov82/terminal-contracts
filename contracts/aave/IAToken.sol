@@ -1,7 +1,12 @@
 pragma solidity ^0.5.8;
 
 interface IAToken {
+
+    function balanceOf(address _user) external view returns (uint256);
+
     function redeem(uint256 _amount) external;
+
+    function principalBalanceOf(address _user) external view returns (uint256);
 
     function getInterestRedirectionAddress(address _user) external view returns (address);
 

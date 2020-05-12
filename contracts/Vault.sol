@@ -1,12 +1,12 @@
 pragma solidity ^0.5.8;
 
 import "openzeppelin-solidity/contracts/access/roles/WhitelistedRole.sol";
-import "./ReInsuranceProvider.sol";
+import "./ReInsuranceVault.sol";
 import "./ERC20.sol";
 
 contract Vault is WhitelistedRole {
 
-    ReInsuranceProvider public reInsuranceProvider;
+    ReInsuranceVault public reInsuranceVault;
     ERC20 public token;
 
     event LogEthReceived(
@@ -33,8 +33,8 @@ contract Vault is WhitelistedRole {
 
     constructor (address _operator, address _adai, address _aaveProvider, address _dai, uint16 _referralCode) public {
         token = ERC20(_dai);
-        reInsuranceProvider = new ReInsuranceProvider(_operator, _adai, _aaveProvider, _dai, _referralCode);
-        reInsuranceProvider.addWhitelistAdmin(_operator);
+        reInsuranceVault = new ReInsuranceVault(_operator, _adai, _aaveProvider, _dai, _referralCode);
+        reInsuranceVault.addWhitelistAdmin(_operator);
     }
 
     function withdrawDAI(uint256 _payment) public onlyWhitelistAdmin {
@@ -50,15 +50,16 @@ contract Vault is WhitelistedRole {
     }
 
     function depositResinsurance(uint _amount) public onlyWhitelistAdmin {
-        token.approve(address(reInsuranceProvider), _amount);
-        reInsuranceProvider.deposit(address(this), _amount);
+        token.approve(address(reInsuranceVault), _amount);
+        reInsuranceVault.deposit(_amount);
     }
 
     function withdrawResinsurance(uint _amount) public onlyWhitelistAdmin {
-        reInsuranceProvider.withdraw(address(this), _amount);
+        reInsuranceVault.withdraw(_amount);
     }
 
-    function balance() external view returns (uint256 balance) {
+    function balance() external view returns (uint256) {
         return token.balanceOf(address(this));
     }
+
 }
