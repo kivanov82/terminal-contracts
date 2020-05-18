@@ -1,6 +1,7 @@
 var TrainDelay = artifacts.require("TrainDelay");
 var Underwriter = artifacts.require("Underwriter");
 var ReInsuranceVault = artifacts.require("ReInsuranceVault");
+var LendingPoolAddressesProviderMock = artifacts.require("LendingPoolAddressesProviderMock");
 
 const empty_address = '0x0000000000000000000000000000000000000000';
 
@@ -50,11 +51,16 @@ module.exports = async function (deployer, network, accounts) {
     const underwriterInstance = await Underwriter.deployed();
     console.log('Terminal, Underwriter: NEW ' + underwriterInstance.address);
 
-    const {aDai, aaveProvider, dai, aaveReferral} = getAaveForNetwork(network, accounts)
+    let {aDai, aaveProvider, dai, aaveReferral} = getAaveForNetwork(network, accounts)
+    if (aaveProvider === empty_address) {
+        //deploy the mock
+        await deployer.deploy(LendingPoolAddressesProviderMock);
+        const aaveProviderInstance = await LendingPoolAddressesProviderMock.deployed();
+        aaveProvider = aaveProviderInstance.address;
+    }
     await deployer.deploy(TrainDelay, underwriterInstance.address, aDai, aaveProvider, dai, aaveReferral);
     const trainDelayInstance = await TrainDelay.deployed();
-    console.log('Terminal, TrainDelay: NEW ' + trainDelayInstance.address);
-
     await underwriterInstance.addSigner(trainDelayInstance.address);
+    console.log('Terminal, TrainDelay: NEW ' + trainDelayInstance.address);
 
 }

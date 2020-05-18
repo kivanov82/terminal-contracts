@@ -8,7 +8,7 @@ contract Underwriter is SignerRole {
     using SafeMath for uint256;
 
     uint256 public constant PRECISION = 10 ** 8;
-    uint256 public constant MAX_PAYOUT_MULTIPLIER = 15;
+    uint256 public constant MAX_PAYOUT_MULTIPLIER = 15; //x15 at max
     uint256 public constant MIN_PREMIUM = 10 finney;    //0.01 ETH
     uint256 public constant MAX_PREMIUM = 150 finney;   //0.12 ETH
     // Maximum cumulated weighted premium per trip
@@ -35,35 +35,38 @@ contract Underwriter is SignerRole {
         uint256[2] premiumMultipliers
     );
 
-    function getRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime) public view returns (uint256[2] memory) {
+    function getRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality) public view returns (uint256[2] memory) {
         bytes32 riskId = getRiskId(trainNumber, departureTime, arrivalTime);
-        Risk storage risk = risks[riskId];
+        Risk memory risk = risks[riskId];
         if (risk.trainNumber == '') {
-            return EMPTY_RISK;
+            return calculateRisk(trainNumber, departureTime, arrivalTime, punctuality).premiumMultipliers;
         } else {
             return risk.premiumMultipliers;
         }
     }
 
-    function getOrCreateRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality, uint256 plannedOffset) external returns (uint256[2] memory) {
-        uint256[2] memory existingMultipliers = getRisk(trainNumber, departureTime, arrivalTime);
-        if (existingMultipliers[0] == 0) {
-            return createRisk(trainNumber, departureTime, arrivalTime, punctuality, plannedOffset);
+    function getOrCreateRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality) external onlySigner returns (uint256[2] memory) {
+        bytes32 riskId = getRiskId(trainNumber, departureTime, arrivalTime);
+        Risk memory existing = risks[riskId];
+        if (existing.trainNumber == '') {
+            Risk memory newRisk = calculateRisk(trainNumber, departureTime, arrivalTime, punctuality);
+            risks[riskId] = newRisk;
+            emit RiskCreated(msg.sender, riskId, trainNumber, departureTime, arrivalTime, newRisk.premiumMultipliers);
+            return newRisk.premiumMultipliers;
         } else {
-            return existingMultipliers;
+            return existing.premiumMultipliers;
         }
     }
 
-    function createRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality, uint256 plannedOffset) public returns (uint256[2] memory) {
-        bytes32 riskId = getRiskId(trainNumber, departureTime, arrivalTime);
-        Risk storage risk = risks[riskId];
+    function calculateRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality) internal pure returns (Risk memory) {
+        Risk memory risk;
         uint256[3] memory multipliers;
         //we know for 60
-        if (plannedOffset == 60) {
+        if (punctuality == 60) {
             multipliers[0] = multiplierForPunctuality(punctuality);
             //double the previous one
             multipliers[1] = limitMultiplier(multipliers[0].mul(2));
-        } else if (plannedOffset == 120) {
+        } else if (punctuality == 120) {
             multipliers[1] = multiplierForPunctuality(punctuality);
         } else {
             require(false, 'Underwriter: unknown offset');
@@ -75,15 +78,13 @@ contract Underwriter is SignerRole {
         risk.departureTime = departureTime;
         risk.arrivalTime = arrivalTime;
         risk.premiumMultipliers = [multipliers[1], multipliers[2]];
-        emit RiskCreated(msg.sender, riskId, trainNumber, departureTime, arrivalTime, risk.premiumMultipliers);
-        return risk.premiumMultipliers;
+        return risk;
     }
 
     function multiplierForPunctuality(uint256 punctuality) internal pure returns (uint256) {
-        // punctuality:
-        // 25% -> 25/10/2 = x1.25;
-        // 100% -> 100/10/2 = x5
-        uint256 calculated = PRECISION.mul(punctuality).div(10).div(2);
+        // assuming percentile 90%
+        // x7
+        uint256 calculated = PRECISION.mul(7);
         return limitMultiplier(calculated);
     }
 
@@ -113,7 +114,7 @@ contract Underwriter is SignerRole {
         return keccak256(abi.encodePacked(trainNumber, departureTime, arrivalTime));
     }
 
-    function getPrecision() external view returns (uint256) {
+    function getPrecision() external pure returns (uint256) {
         return PRECISION;
     }
 

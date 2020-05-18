@@ -41,7 +41,6 @@ contract TrainDelay is SignerRole, Pausable {
         uint256 departureTime,
         uint256 arrivalTime,
         uint256 punctuality,
-        uint256 plannedOffset,
         uint256[2] premiumMultipliers
     );
 
@@ -71,8 +70,7 @@ contract TrainDelay is SignerRole, Pausable {
         uint256 departureDate,
         uint256 departureTime,
         uint256 arrivalTime,
-        uint256 punctuality,
-        uint256 plannedOffset
+        uint256 punctuality
     ) external payable whenNotPaused {
         uint256 premium = msg.value;
         address payable holder = msg.sender;
@@ -87,7 +85,7 @@ contract TrainDelay is SignerRole, Pausable {
             trip.trainNumber = trainNumber;
         }
 
-        uint256[2] memory premiumMultipliers = underwriter.getOrCreateRisk(trainNumber, departureTime, arrivalTime, punctuality, plannedOffset);
+        uint256[2] memory premiumMultipliers = underwriter.getOrCreateRisk(trainNumber, departureTime, arrivalTime, punctuality);
         trip.cumulatedWeightedPayout = trip.cumulatedWeightedPayout.add(premium.mul(premiumMultipliers[1]).div(underwriter.getPrecision()));
         require(trip.cumulatedWeightedPayout <= underwriter.maxCumulatedPayout(), "TrainDelay: trip risk limit");
 
@@ -97,7 +95,7 @@ contract TrainDelay is SignerRole, Pausable {
         trip.applications.push(application);
 
         address(vault).transfer(premium);
-        emit ApplicationCreated(holder, tripId, trainNumber, departureTime, arrivalTime, punctuality, plannedOffset, premiumMultipliers);
+        emit ApplicationCreated(holder, tripId, trainNumber, departureTime, arrivalTime, punctuality, premiumMultipliers);
     }
 
     function claimTripDelegated(bytes32 tripId, bytes32 cause) external onlySigner {
@@ -135,9 +133,9 @@ contract TrainDelay is SignerRole, Pausable {
 
 interface IUnderwriter {
 
-    function getRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality, uint256 plannedOffset) external view returns (uint256[2] memory);
+    function getRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality) external view returns (uint256[2] memory);
 
-    function getOrCreateRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality, uint256 plannedOffset) external returns (uint256[2] memory);
+    function getOrCreateRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality) external returns (uint256[2] memory);
 
     function validPremium(uint256 premium) external view returns (bool);
 
