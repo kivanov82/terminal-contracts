@@ -17,31 +17,31 @@ contract Underwriter is SignerRole {
     uint256[2] public EMPTY_RISK = [0, 0];
 
     struct Risk {
-        string trainNumber;
+        bytes32 trainNumber;
         uint256[2] premiumMultipliers;   //120+, 'cancelled' multiplier, 10 ** 8
     }
 
-    mapping(string => Risk) public risks;
+    mapping(bytes32 => Risk) public risks;
 
     event RiskCreated
     (
         address author,
-        string trainNumber,
+        bytes32 trainNumber,
         uint256[2] premiumMultipliers
     );
 
-    function getRisk(string memory trainNumber, uint256 punctuality) public view returns (uint256[2] memory) {
+    function getRisk(bytes32 trainNumber, uint256 punctuality) public view returns (uint256[2] memory) {
         Risk memory risk = risks[trainNumber];
-        if (bytes(risk.trainNumber).length == 0) {
+        if (risk.trainNumber == '') {
             return calculateRisk(trainNumber, punctuality).premiumMultipliers;
         } else {
             return risk.premiumMultipliers;
         }
     }
 
-    function getOrCreateRisk(string calldata trainNumber, uint256 punctuality) external onlySigner returns (uint256[2] memory) {
+    function getOrCreateRisk(bytes32 trainNumber, uint256 punctuality) external onlySigner returns (uint256[2] memory) {
         Risk memory existing = risks[trainNumber];
-        if (bytes(existing.trainNumber).length == 0) {
+        if (existing.trainNumber == '') {
             Risk memory newRisk = calculateRisk(trainNumber, punctuality);
             risks[trainNumber] = newRisk;
             emit RiskCreated(msg.sender, trainNumber, newRisk.premiumMultipliers);
@@ -51,7 +51,7 @@ contract Underwriter is SignerRole {
         }
     }
 
-    function calculateRisk(string memory trainNumber, uint256 punctuality) internal pure returns (Risk memory) {
+    function calculateRisk(bytes32 trainNumber, uint256 punctuality) internal pure returns (Risk memory) {
         Risk memory risk;
         uint256[3] memory multipliers;
         //we know for 60
@@ -88,7 +88,7 @@ contract Underwriter is SignerRole {
         return multiplier;
     }
 
-    function resetRisk(string calldata trainNumber) external onlySigner {
+    function resetRisk(bytes32 trainNumber) external onlySigner {
         delete risks[trainNumber];
     }
 

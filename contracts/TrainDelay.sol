@@ -26,7 +26,7 @@ contract TrainDelay is SignerRole, Pausable {
     }
 
     struct Trip {
-        string trainNumber;
+        bytes32 trainNumber;
         Application[] applications;
         uint256 cumulatedWeightedPayout;
     }
@@ -37,8 +37,9 @@ contract TrainDelay is SignerRole, Pausable {
     (
         address payable holder,
         bytes32 tripId,
-        string trainNumber,
-        string destination,
+        bytes32 trainNumber,
+        bytes32 origin,
+        bytes32 destination,
         uint256 departureDateTime,
         uint256 arrivalDateTime,
         uint256 punctuality,
@@ -68,8 +69,9 @@ contract TrainDelay is SignerRole, Pausable {
     }
 
     function applyForPolicy(
-        string calldata trainNumber,
-        string calldata destination,
+        bytes32 trainNumber,
+        bytes32 origin,
+        bytes32 destination,
         uint256 departureDateTime,
         uint256 arrivalDateTime,
         uint256 punctuality
@@ -82,7 +84,7 @@ contract TrainDelay is SignerRole, Pausable {
             abi.encodePacked(trainNumber, departureDateTime)
         );
         Trip storage trip = trips[tripId];
-        if (bytes(trainNumber).length == 0) {
+        if (trip.trainNumber == "") {
             //first policy for this trip
             trip.trainNumber = trainNumber;
         }
@@ -97,7 +99,7 @@ contract TrainDelay is SignerRole, Pausable {
         trip.applications.push(application);
 
         address(vault).transfer(premium);
-        emit ApplicationCreated(holder, tripId, trainNumber, destination, departureDateTime, arrivalDateTime, punctuality, premium, premiumMultipliers);
+        emit ApplicationCreated(holder, tripId, trainNumber, origin, destination, departureDateTime, arrivalDateTime, punctuality, premium, premiumMultipliers);
     }
 
     function claimTripDelegated(bytes32 tripId, bytes32 cause) external onlySigner {
@@ -135,9 +137,9 @@ contract TrainDelay is SignerRole, Pausable {
 
 interface IUnderwriter {
 
-    function getRisk(string calldata trainNumber, uint256 punctuality) external view returns (uint256[2] memory);
+    function getRisk(bytes32 trainNumber, uint256 punctuality) external view returns (uint256[2] memory);
 
-    function getOrCreateRisk(string calldata trainNumber, uint256 punctuality) external returns (uint256[2] memory);
+    function getOrCreateRisk(bytes32 trainNumber, uint256 punctuality) external returns (uint256[2] memory);
 
     function validPremium(uint256 premium) external view returns (bool);
 
