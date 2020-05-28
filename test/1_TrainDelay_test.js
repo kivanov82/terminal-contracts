@@ -66,7 +66,7 @@ contract('TrainDelay', async (accounts) => {
         await trainDelay.pause();
         assert.strictEqual(await trainDelay.paused(), true);
         try {
-            await trainDelay.applyForPolicy(web3.utils.asciiToHex('IC123'), 10000, timestamp_1, timestamp_2, 60, {value: web3.utils.toWei('100', 'finney')});
+            await trainDelay.applyForPolicy('IC123', 'STP', timestamp_1, timestamp_2, 60, {value: web3.utils.toWei('100', 'finney')});
             assert.ok(false, 'paused!');
         } catch (error) {
             assert.ok(error.reason === 'Pausable: paused' ? true : false, 'expected');
@@ -78,7 +78,7 @@ contract('TrainDelay', async (accounts) => {
     it("should create application and accept multiple policies per trip per account", async () => {
         let vaultBefore = Number(await web3.eth.getBalance(vault.address));
 
-        let tx1 = await trainDelay.applyForPolicy(web3.utils.asciiToHex('IC123'), 10000, timestamp_1, timestamp_2, 60, {
+        let tx1 = await trainDelay.applyForPolicy('IC123', 'STP', timestamp_1, timestamp_2, 60, {
             from: HOLDER_1,
             value: web3.utils.toWei('100', 'finney')
         });
@@ -86,7 +86,7 @@ contract('TrainDelay', async (accounts) => {
             return ev.holder === HOLDER_1;
         }, 'ApplicationCreated should be emitted with correct parameters');
 
-        await trainDelay.applyForPolicy(web3.utils.asciiToHex('IC123'), 10000, timestamp_1, timestamp_2, 60, {
+        await trainDelay.applyForPolicy('IC123', 'STP', timestamp_1, timestamp_2, 60, {
             from: HOLDER_1,
             value: web3.utils.toWei('100', 'finney')
         });
@@ -96,7 +96,7 @@ contract('TrainDelay', async (accounts) => {
     })
 
     it("should process claims", async () => {
-        let tx1 = await trainDelay.applyForPolicy(web3.utils.asciiToHex('THALYS1234'), 10000, timestamp_1, timestamp_2, 60, {
+        let tx1 = await trainDelay.applyForPolicy('THALYS1234', 'STP', timestamp_1, timestamp_2, 60, {
             from: HOLDER_2,
             value: web3.utils.toWei('100', 'finney')
         });

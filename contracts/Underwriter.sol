@@ -17,48 +17,41 @@ contract Underwriter is SignerRole {
     uint256[2] public EMPTY_RISK = [0, 0];
 
     struct Risk {
-        bytes32 trainNumber;
-        uint256 departureTime;
-        uint256 arrivalTime;
+        string trainNumber;
         uint256[2] premiumMultipliers;   //120+, 'cancelled' multiplier, 10 ** 8
     }
 
-    mapping(bytes32 => Risk) public risks;
+    mapping(string => Risk) public risks;
 
     event RiskCreated
     (
         address author,
-        bytes32 riskId,
-        bytes32 trainNumber,
-        uint256 departureTime,
-        uint256 arrivalTime,
+        string trainNumber,
         uint256[2] premiumMultipliers
     );
 
-    function getRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality) public view returns (uint256[2] memory) {
-        bytes32 riskId = getRiskId(trainNumber, departureTime, arrivalTime);
-        Risk memory risk = risks[riskId];
-        if (risk.trainNumber == '') {
-            return calculateRisk(trainNumber, departureTime, arrivalTime, punctuality).premiumMultipliers;
+    function getRisk(string memory trainNumber, uint256 punctuality) public view returns (uint256[2] memory) {
+        Risk memory risk = risks[trainNumber];
+        if (bytes(risk.trainNumber).length == 0) {
+            return calculateRisk(trainNumber, punctuality).premiumMultipliers;
         } else {
             return risk.premiumMultipliers;
         }
     }
 
-    function getOrCreateRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality) external onlySigner returns (uint256[2] memory) {
-        bytes32 riskId = getRiskId(trainNumber, departureTime, arrivalTime);
-        Risk memory existing = risks[riskId];
-        if (existing.trainNumber == '') {
-            Risk memory newRisk = calculateRisk(trainNumber, departureTime, arrivalTime, punctuality);
-            risks[riskId] = newRisk;
-            emit RiskCreated(msg.sender, riskId, trainNumber, departureTime, arrivalTime, newRisk.premiumMultipliers);
+    function getOrCreateRisk(string calldata trainNumber, uint256 punctuality) external onlySigner returns (uint256[2] memory) {
+        Risk memory existing = risks[trainNumber];
+        if (bytes(existing.trainNumber).length == 0) {
+            Risk memory newRisk = calculateRisk(trainNumber, punctuality);
+            risks[trainNumber] = newRisk;
+            emit RiskCreated(msg.sender, trainNumber, newRisk.premiumMultipliers);
             return newRisk.premiumMultipliers;
         } else {
             return existing.premiumMultipliers;
         }
     }
 
-    function calculateRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime, uint256 punctuality) internal pure returns (Risk memory) {
+    function calculateRisk(string memory trainNumber, uint256 punctuality) internal pure returns (Risk memory) {
         Risk memory risk;
         uint256[3] memory multipliers;
         //we know for 60
@@ -75,8 +68,6 @@ contract Underwriter is SignerRole {
         multipliers[2] = limitMultiplier(multipliers[1].mul(2));
 
         risk.trainNumber = trainNumber;
-        risk.departureTime = departureTime;
-        risk.arrivalTime = arrivalTime;
         risk.premiumMultipliers = [multipliers[1], multipliers[2]];
         return risk;
     }
@@ -97,9 +88,8 @@ contract Underwriter is SignerRole {
         return multiplier;
     }
 
-    function resetRisk(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime) external onlySigner {
-        bytes32 riskId = getRiskId(trainNumber, departureTime, arrivalTime);
-        delete risks[riskId];
+    function resetRisk(string calldata trainNumber) external onlySigner {
+        delete risks[trainNumber];
     }
 
     function validPremium(uint256 premium) public pure returns (bool) {
@@ -108,10 +98,6 @@ contract Underwriter is SignerRole {
 
     function maxCumulatedPayout() public pure returns (uint256){
         return MAX_CUMULATED_WEIGHTED_PAYOUT;
-    }
-
-    function getRiskId(bytes32 trainNumber, uint256 departureTime, uint256 arrivalTime) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(trainNumber, departureTime, arrivalTime));
     }
 
     function getPrecision() external pure returns (uint256) {
