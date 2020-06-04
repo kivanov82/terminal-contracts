@@ -50,6 +50,7 @@ contract TrainDelay is SignerRole, Pausable {
     event ApplicationResolved
     (
         address payable holder,
+        uint256 premium,
         uint256 payout,
         bytes32 tripId
     );
@@ -105,12 +106,15 @@ contract TrainDelay is SignerRole, Pausable {
     function claimTripDelegated(bytes32 tripId, bytes32 cause) external onlySigner {
         for (uint8 i = 0; i < trips[tripId].applications.length; i++) {
             Application memory application = trips[tripId].applications[i];
-            if (cause == '120') {
+            if (cause == 0) {
+                emit ApplicationResolved(application.holder, application.premium, 0, tripId);
+            }
+            else if (cause == '120') {
                 withdrawVault(application.payout120, application.holder);
-                emit ApplicationResolved(application.holder, application.payout120, tripId);
+                emit ApplicationResolved(application.holder, application.premium, application.payout120, tripId);
             } else if (cause == 'cancelled') {
                 withdrawVault(application.payoutCancelled, application.holder);
-                emit ApplicationResolved(application.holder, application.payoutCancelled, tripId);
+                emit ApplicationResolved(application.holder, application.premium, application.payoutCancelled, tripId);
             }
             else {
                 require(false, 'TrainDelay: cause not supported');

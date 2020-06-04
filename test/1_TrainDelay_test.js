@@ -99,6 +99,24 @@ contract('TrainDelay', async (accounts) => {
         assert.strictEqual(vaultAfter, vaultBefore + Number(web3.utils.toWei("200", "finney")));
     })
 
+    it("should process positive resolution", async () => {
+        let tx1 = await trainDelay.applyForPolicy(web3.utils.asciiToHex('THALYS4567'), web3.utils.asciiToHex('PARIS'), web3.utils.asciiToHex('STP'), timestamp_1, timestamp_2, 60, {
+            from: HOLDER_2,
+            value: web3.utils.toWei('100', 'finney')
+        });
+        let tripId;
+        truffleAssert.eventEmitted(tx1, 'ApplicationCreated', (ev) => {
+            tripId = ev.tripId;
+            return true;
+        }, 'ApplicationCreated should be emitted with correct parameters');
+
+        let holderBalanceBefore = Number(await web3.eth.getBalance(HOLDER_2));
+        let tx2 = await trainDelay.claimTripDelegated(tripId, '0x');
+        let holderBalanceAfter = Number(await web3.eth.getBalance(HOLDER_2));
+
+        assert.strictEqual(holderBalanceAfter, holderBalanceBefore);
+    })
+
     it("should process claims", async () => {
         let tx1 = await trainDelay.applyForPolicy(web3.utils.asciiToHex('THALYS1234'), web3.utils.asciiToHex('PARIS'), web3.utils.asciiToHex('STP'), timestamp_1, timestamp_2, 60, {
             from: HOLDER_2,

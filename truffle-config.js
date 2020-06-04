@@ -46,7 +46,7 @@ module.exports = {
       skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
     },
     ropsten: {
-      provider: () => new HDWalletProvider(mnemonicRinkeby, `https://ropsten.infura.io/v3/${infuraKey}`),
+      provider: () => new HDWalletProvider(mnemonicRinkeby, `http://3.126.193.142:8545`),
       gasPrice: 30000000000, //30Gwei
       network_id: 3,
       gas: 6550000,
