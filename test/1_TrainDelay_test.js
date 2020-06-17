@@ -140,5 +140,51 @@ contract('TrainDelay', async (accounts) => {
         assert.ok(holderBalanceAfter > holderBalanceBefore, 'Payout hasn\'t been processed!');
     })
 
+    it("should handle fraud applications", async () => {
+        let tx1 = await trainDelay.applyForPolicy(web3.utils.asciiToHex('THALYS12345'), web3.utils.asciiToHex('PARIS'), web3.utils.asciiToHex('STP'), timestamp_1, timestamp_2, 60, {
+            from: HOLDER_2,
+            value: web3.utils.toWei('100', 'finney')
+        });
+        let tripId;
+        let index;
+        truffleAssert.eventEmitted(tx1, 'ApplicationCreated', (ev) => {
+            tripId = ev.tripId;
+            index = ev.tripIndex;
+            return true;
+        }, 'ApplicationCreated should be emitted with correct parameters');
+
+        //custodial invalidation kicks in
+        await trainDelay.invalidateTrip(tripId, index);
+
+        let tx2 = await trainDelay.claimTripDelegated(tripId, web3.utils.asciiToHex('120'));
+
+        //processed, but only the premium itself is given back
+        truffleAssert.eventEmitted(tx2, 'ApplicationResolved', (ev) => {
+            assert.strictEqual(Number(ev.payout), Number(web3.utils.toWei('100', 'finney')));
+            return true;
+        }, 'ApplicationCreated should be emitted with correct parameters');
+
+    })
+
+    it("should process no-data claims", async () => {
+        let tx1 = await trainDelay.applyForPolicy(web3.utils.asciiToHex('THALYS1'), web3.utils.asciiToHex('PARIS'), web3.utils.asciiToHex('STP'), timestamp_1, timestamp_2, 60, {
+            from: HOLDER_2,
+            value: web3.utils.toWei('100', 'finney')
+        });
+        let tripId;
+        truffleAssert.eventEmitted(tx1, 'ApplicationCreated', (ev) => {
+            tripId = ev.tripId;
+            return true;
+        }, 'ApplicationCreated should be emitted with correct parameters');
+
+        let tx2 = await trainDelay.claimTripDelegated(tripId, web3.utils.asciiToHex('-1'));
+
+        //processed, but only the premium itself is given back
+        truffleAssert.eventEmitted(tx2, 'ApplicationResolved', (ev) => {
+            assert.strictEqual(Number(ev.payout), Number(web3.utils.toWei('100', 'finney')));
+            return true;
+        }, 'ApplicationCreated should be emitted with correct parameters');
+    })
+
 
 });

@@ -49,12 +49,19 @@ contract Vault is WhitelistedRole {
         emit LogEthSent(_payment, _operator);
     }
 
-    function depositResinsurance(uint _amount) public onlyWhitelistAdmin {
+    function shareProfit() public payable onlyWhitelistAdmin {
+        uint256 _profit = msg.value;
+        //TODO
+        //SWAP ETH
+        //depositReinsurance() with resulting amount
+    }
+
+    function depositReinsurance(uint _amount) public onlyWhitelistAdmin {
         token.approve(address(reInsuranceVault), _amount);
         reInsuranceVault.deposit(_amount);
     }
 
-    function withdrawResinsurance(uint _amount) public onlyWhitelistAdmin {
+    function withdrawReinsurance(uint _amount) public onlyWhitelistAdmin {
         reInsuranceVault.withdraw(_amount);
     }
 

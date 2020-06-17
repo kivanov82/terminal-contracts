@@ -14,6 +14,8 @@ import "./Vault.sol";
 contract TrainDelay is SignerRole, Pausable {
 
     using SafeMath for uint256;
+    uint256 public constant PROFIT_SHARE_THRESHOLD = 500 finney;
+    uint256 public constant PROFIT_DISTRIBUTION = 10; //%
 
     Vault public vault;
     IUnderwriter public underwriter;
@@ -23,6 +25,7 @@ contract TrainDelay is SignerRole, Pausable {
         uint256 premium;
         uint256 payout120;
         uint256 payoutCancelled;
+        bool valid;
     }
 
     struct Trip {
@@ -32,11 +35,13 @@ contract TrainDelay is SignerRole, Pausable {
     }
 
     mapping(bytes32 => Trip) public trips;
+    uint256 public preservedPremiums;
 
     event ApplicationCreated
     (
         address payable holder,
         bytes32 tripId,
+        uint256 tripIndex,
         bytes32 trainNumber,
         bytes32 origin,
         bytes32 destination,
@@ -82,7 +87,7 @@ contract TrainDelay is SignerRole, Pausable {
         require(underwriter.validPremium(premium), "TrainDelay: invalid premium");
 
         bytes32 tripId = keccak256(
-            abi.encodePacked(trainNumber, departureDateTime)
+            abi.encodePacked(trainNumber, departureDateTime, arrivalDateTime)
         );
         Trip storage trip = trips[tripId];
         if (trip.trainNumber == "") {
@@ -96,23 +101,35 @@ contract TrainDelay is SignerRole, Pausable {
 
         Application memory application = Application(holder, premium,
             premium.mul(premiumMultipliers[0]).div(underwriter.getPrecision()),
-            premium.mul(premiumMultipliers[1]).div(underwriter.getPrecision()));
+            premium.mul(premiumMultipliers[1]).div(underwriter.getPrecision()),
+            true);
         trip.applications.push(application);
 
         address(vault).transfer(premium);
-        emit ApplicationCreated(holder, tripId, trainNumber, origin, destination, departureDateTime, arrivalDateTime, punctuality, premium, premiumMultipliers);
+        emit ApplicationCreated(holder, tripId, trip.applications.length - 1, trainNumber, origin, destination, departureDateTime, arrivalDateTime, punctuality, premium, premiumMultipliers);
     }
 
     function claimTripDelegated(bytes32 tripId, bytes32 cause) external onlySigner {
         for (uint8 i = 0; i < trips[tripId].applications.length; i++) {
             Application memory application = trips[tripId].applications[i];
-            if (cause == 0) {
+            if (cause == '-1' || application.valid == false) {
+                //missing arrival-departure date fot the trip
+                //OR
+                //this application was invalidated
+                withdrawVault(application.premium, application.holder);
+                emit ApplicationResolved(application.holder, application.premium, application.premium, tripId);
+            }
+            else if (cause == 0) {
+                //on-time
                 emit ApplicationResolved(application.holder, application.premium, 0, tripId);
+                preservedPremiums.add(application.premium);
             }
             else if (cause == '120') {
+                //delay
                 withdrawVault(application.payout120, application.holder);
                 emit ApplicationResolved(application.holder, application.premium, application.payout120, tripId);
             } else if (cause == 'cancelled') {
+                //delay
                 withdrawVault(application.payoutCancelled, application.holder);
                 emit ApplicationResolved(application.holder, application.premium, application.payoutCancelled, tripId);
             }
@@ -120,7 +137,22 @@ contract TrainDelay is SignerRole, Pausable {
                 require(false, 'TrainDelay: cause not supported');
             }
         }
+        shareProfit();
         resolveTrip(tripId);
+    }
+
+    function shareProfit() internal {
+        if (preservedPremiums > PROFIT_SHARE_THRESHOLD) {
+            vault.shareProfit.value(preservedPremiums.mul(PROFIT_DISTRIBUTION).div(100))();
+            preservedPremiums = 0;
+        }
+    }
+
+    /**
+    * @dev custodial invalidation of a particular application
+    **/
+    function invalidateTrip(bytes32 tripId, uint256 index) public onlySigner {
+        trips[tripId].applications[index].valid = false;
     }
 
     function resolveTrip(bytes32 tripId) internal onlySigner {
