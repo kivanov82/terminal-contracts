@@ -3,10 +3,12 @@ pragma solidity ^0.5.8;
 import "openzeppelin-solidity/contracts/access/roles/WhitelistedRole.sol";
 import "./ReInsuranceVault.sol";
 import "./ERC20.sol";
+import "./TokenConverter.sol";
 
 contract Vault is WhitelistedRole {
 
     ReInsuranceVault public reInsuranceVault;
+    TokenConverter public converter;
     ERC20 public token;
 
     event LogEthReceived(
@@ -26,14 +28,16 @@ contract Vault is WhitelistedRole {
 
     /**
     * @dev funding vault is allowed
+    * Might be a free will or from a token converter
     **/
     function() external payable {
         emit LogEthReceived(msg.value, msg.sender);
     }
 
-    constructor (address _operator, address _adai, address _aaveProvider, address _dai, uint16 _referralCode) public {
+    constructor (address _operator, address _adai, address _aaveProvider, address _dai, uint16 _referralCode, address _converter) public {
         token = ERC20(_dai);
-        reInsuranceVault = new ReInsuranceVault(_operator, _adai, _aaveProvider, _dai, _referralCode);
+        converter = TokenConverter(_converter);
+        reInsuranceVault = new ReInsuranceVault(_operator, _adai, _aaveProvider, _dai, _referralCode, _converter);
         reInsuranceVault.addWhitelistAdmin(_operator);
     }
 
@@ -57,12 +61,17 @@ contract Vault is WhitelistedRole {
     }
 
     function depositReinsurance(uint _amount) public onlyWhitelistAdmin {
-        token.approve(address(reInsuranceVault), _amount);
-        reInsuranceVault.deposit(_amount);
+        uint256 _tokenAmount = converter.swapMyEth.value(_amount)(address(reInsuranceVault));
+        reInsuranceVault.depositAave(_tokenAmount);
     }
 
     function withdrawReinsurance(uint _amount) public onlyWhitelistAdmin {
+        //aDai -> DAI and move here
         reInsuranceVault.withdraw(_amount);
+        //allow converter to use our DAI
+        token.approve(address(converter), _amount);
+        //convert DAI -> ETH and move it here
+        converter.swapMyErc(_amount, address(this));
     }
 
     function balance() external view returns (uint256) {

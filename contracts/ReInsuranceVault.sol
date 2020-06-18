@@ -6,12 +6,14 @@ import "./aave/ILendingPool.sol";
 import "./aave/IAToken.sol";
 import "./ERC20.sol";
 import "./aave/ILendingPoolAddressesProvider.sol";
+import "./TokenConverter.sol";
 
 contract ReInsuranceVault is WhitelistedRole {
 
     using SafeMath for uint256;
 
     ILendingPoolAddressesProvider public aaveAddressesProvider;
+    TokenConverter public converter;
 
     address public ADAI_ADDRESS;
     address public AAVE_LENDING_POOL;
@@ -21,8 +23,9 @@ contract ReInsuranceVault is WhitelistedRole {
 
     address operator;
 
-    constructor (address _operator, address _adai, address _aaveProvider, address _dai, uint16 _referralCode) public {
+    constructor (address _operator, address _adai, address _aaveProvider, address _dai, uint16 _referralCode, address _converter) public {
         operator = _operator;
+        converter = TokenConverter(_converter);
         aaveAddressesProvider = ILendingPoolAddressesProvider(_aaveProvider);
         ADAI_ADDRESS = _adai;
         AAVE_LENDING_POOL = aaveAddressesProvider.getLendingPool();
@@ -39,7 +42,10 @@ contract ReInsuranceVault is WhitelistedRole {
         address _user = msg.sender;
         // move token into here
         require(ERC20(DAI_ADDRESS).transferFrom(_user, address(this), _amount));
+        depositAave(_amount);
+    }
 
+    function depositAave(uint _amount) public onlyWhitelistAdmin {
         ERC20(DAI_ADDRESS).approve(AAVE_LENDING_POOL_CORE, uint(- 1));
         ILendingPool(AAVE_LENDING_POOL).deposit(DAI_ADDRESS, _amount, referralCode);
         if (IAToken(ADAI_ADDRESS).getInterestRedirectionAddress(address(this)) == address(0)) {
