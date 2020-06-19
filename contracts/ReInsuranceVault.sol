@@ -48,11 +48,14 @@ contract ReInsuranceVault is WhitelistedRole {
     function depositAave(uint _amount) public onlyWhitelistAdmin {
         ERC20(DAI_ADDRESS).approve(AAVE_LENDING_POOL_CORE, uint(- 1));
         ILendingPool(AAVE_LENDING_POOL).deposit(DAI_ADDRESS, _amount, referralCode);
-        if (IAToken(ADAI_ADDRESS).getInterestRedirectionAddress(address(this)) == address(0)) {
+        //TODO
+        //Keep track of each the depositor's balance:
+        //initial aToken + keep track of interest + terminal fee
+        /*if (IAToken(ADAI_ADDRESS).getInterestRedirectionAddress(address(this)) == address(0)) {
             //first deposit
             //start redirecting interest to 'operator'
             IAToken(ADAI_ADDRESS).redirectInterestStream(operator);
-        }
+        }*/
     }
 
     /**
@@ -94,6 +97,6 @@ contract ReInsuranceVault is WhitelistedRole {
     **/
     function getLifetimeProfit() external view returns (uint256) {
         //TODO not really accurate data
-        return ERC20(ADAI_ADDRESS).balanceOf(operator);
+        return ERC20(ADAI_ADDRESS).balanceOf(address(this));
     }
 }

@@ -72,8 +72,10 @@ contract KyberConverter is Ownable {
 
         // Get the minimum conversion rate
         (minConversionRate,) = getExpectedRate(stableToken, ETH_TOKEN_ADDRESS, srcQty);
-        uint maxDestAmount = srcQty.mul(minConversionRate).mul(105).div(100);
+        // -5% max
+        minConversionRate = minConversionRate.mul(95).div(100);
         // +5% max
+        uint maxDestAmount = srcQty.mul(minConversionRate).mul(105).div(100);
 
         // Swap the ERC20 token and send to 'this' contract address
         bytes memory hint;
@@ -111,8 +113,10 @@ contract KyberConverter is Ownable {
 
         // Get the minimum conversion rate
         (minConversionRate,) = getExpectedRate(ETH_TOKEN_ADDRESS, stableToken, srcQty);
-        uint maxDestAmount = srcQty.mul(minConversionRate).mul(105).div(100);
+        // -5% max
+        minConversionRate = minConversionRate.mul(95).div(100);
         // +5% max
+        uint maxDestAmount = srcQty.mul(minConversionRate).mul(105).div(100);
 
         // Swap the ERC20 token and send to destAddress
         bytes memory hint;

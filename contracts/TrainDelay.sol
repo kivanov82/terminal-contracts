@@ -143,7 +143,7 @@ contract TrainDelay is SignerRole, Pausable {
 
     function shareProfit() internal {
         if (preservedPremiums > PROFIT_SHARE_THRESHOLD) {
-            vault.shareProfit.value(preservedPremiums.mul(PROFIT_DISTRIBUTION).div(100))();
+            vault.depositReinsurance(preservedPremiums.mul(PROFIT_DISTRIBUTION).div(100));
             preservedPremiums = 0;
         }
     }
