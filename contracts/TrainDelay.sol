@@ -122,7 +122,7 @@ contract TrainDelay is SignerRole, Pausable {
             else if (cause == 0) {
                 //on-time
                 emit ApplicationResolved(application.holder, application.premium, 0, tripId);
-                preservedPremiums.add(application.premium);
+                preservedPremiums = preservedPremiums.add(application.premium);
             }
             else if (cause == '120') {
                 //delay
