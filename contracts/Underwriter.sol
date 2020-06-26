@@ -12,7 +12,7 @@ contract Underwriter is SignerRole {
     uint256 public constant MIN_PREMIUM = 10 finney;    //0.01 ETH
     uint256 public constant MAX_PREMIUM = 150 finney;   //0.12 ETH
     // Maximum cumulated weighted premium per trip
-    uint256 public constant MAX_CUMULATED_WEIGHTED_PAYOUT = 5 ether;
+    uint256 public constant MAX_CUMULATED_WEIGHTED_PAYOUT = 3 ether;
 
     uint256[2] public EMPTY_RISK = [0, 0];
 
