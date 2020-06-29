@@ -129,7 +129,7 @@ contract('TrainDelay', async (accounts) => {
         }, 'ApplicationCreated should be emitted with correct parameters');
 
         let holderBalanceBefore = Number(await web3.eth.getBalance(HOLDER_2));
-        let tx2 = await trainDelay.claimTripDelegated(tripId, web3.utils.asciiToHex('120'));
+        let tx2 = await trainDelay.claimTripDelegated(tripId, web3.utils.asciiToHex('60'));
         truffleAssert.eventEmitted(tx2, 'ApplicationResolved', (ev) => {
             console.log("Payout processed: +" + ev.payout);
             return ev.holder === HOLDER_2;
@@ -154,9 +154,9 @@ contract('TrainDelay', async (accounts) => {
         }, 'ApplicationCreated should be emitted with correct parameters');
 
         //custodial invalidation kicks in
-        await trainDelay.invalidateTrip(tripId, index);
+        await trainDelay.invalidateApplication(tripId, index);
 
-        let tx2 = await trainDelay.claimTripDelegated(tripId, web3.utils.asciiToHex('120'));
+        let tx2 = await trainDelay.claimTripDelegated(tripId, web3.utils.asciiToHex('60'));
 
         //processed, but only the premium itself is given back
         truffleAssert.eventEmitted(tx2, 'ApplicationResolved', (ev) => {

@@ -8,7 +8,6 @@ import "./Vault.sol";
 /**
  * @title TrainDelay
  * @dev Autonomous machinery to register active protections, underwrite them and perform the payout if the event occurs
- * Inspired by GIF framework https://github.com/etherisc/GIF/tree/master/core/gif-contracts
  *
  */
 contract TrainDelay is SignerRole, Pausable {
@@ -23,7 +22,7 @@ contract TrainDelay is SignerRole, Pausable {
     struct Application {
         address payable holder;
         uint256 premium;
-        uint256 payout120;
+        uint256 payout60;
         uint256 payoutCancelled;
         bool valid;
     }
@@ -113,7 +112,7 @@ contract TrainDelay is SignerRole, Pausable {
         for (uint8 i = 0; i < trips[tripId].applications.length; i++) {
             Application memory application = trips[tripId].applications[i];
             if (cause == '-1' || application.valid == false) {
-                //missing arrival-departure date fot the trip
+                //missing arrival/departure data fot the trip
                 //OR
                 //this application was invalidated
                 withdrawVault(application.premium, application.holder);
@@ -124,10 +123,10 @@ contract TrainDelay is SignerRole, Pausable {
                 emit ApplicationResolved(application.holder, application.premium, 0, tripId);
                 preservedPremiums = preservedPremiums.add(application.premium);
             }
-            else if (cause == '120') {
+            else if (cause == '60') {
                 //delay
-                withdrawVault(application.payout120, application.holder);
-                emit ApplicationResolved(application.holder, application.premium, application.payout120, tripId);
+                withdrawVault(application.payout60, application.holder);
+                emit ApplicationResolved(application.holder, application.premium, application.payout60, tripId);
             } else if (cause == 'cancelled') {
                 //delay
                 withdrawVault(application.payoutCancelled, application.holder);
@@ -151,7 +150,7 @@ contract TrainDelay is SignerRole, Pausable {
     /**
     * @dev custodial invalidation of a particular application
     **/
-    function invalidateTrip(bytes32 tripId, uint256 index) public onlySigner {
+    function invalidateApplication(bytes32 tripId, uint256 index) public onlySigner {
         trips[tripId].applications[index].valid = false;
     }
 

@@ -8,7 +8,6 @@ contract Underwriter is SignerRole {
     using SafeMath for uint256;
 
     uint256 public constant PRECISION = 10 ** 8;
-    uint256 public constant MAX_PAYOUT_MULTIPLIER = 15; //x15 at max
     uint256 public constant MIN_PREMIUM = 10 finney;    //0.01 ETH
     uint256 public constant MAX_PREMIUM = 150 finney;   //0.12 ETH
     // Maximum cumulated weighted premium per trip
@@ -18,7 +17,7 @@ contract Underwriter is SignerRole {
 
     struct Risk {
         bytes32 trainNumber;
-        uint256[2] premiumMultipliers;   //120+, 'cancelled' multiplier, 10 ** 8
+        uint256[2] premiumMultipliers;   //60+, 'cancelled' multiplier, 10 ** 8
     }
 
     mapping(bytes32 => Risk) public risks;
@@ -53,39 +52,19 @@ contract Underwriter is SignerRole {
 
     function calculateRisk(bytes32 trainNumber, uint256 punctuality) internal pure returns (Risk memory) {
         Risk memory risk;
-        uint256[3] memory multipliers;
-        //we know for 60
-        if (punctuality == 60) {
-            multipliers[0] = multiplierForPunctuality(punctuality);
-            //double the previous one
-            multipliers[1] = limitMultiplier(multipliers[0].mul(2));
-        } else if (punctuality == 120) {
-            multipliers[1] = multiplierForPunctuality(punctuality);
-        } else {
-            require(false, 'Underwriter: unknown offset');
-        }
-        //double the previous one
-        multipliers[2] = limitMultiplier(multipliers[1].mul(2));
-
         risk.trainNumber = trainNumber;
-        risk.premiumMultipliers = [multipliers[1], multipliers[2]];
+        risk.premiumMultipliers[0] = multiplierForPunctuality(punctuality);
+        risk.premiumMultipliers[1] = PRECISION.mul(10);
         return risk;
     }
 
     function multiplierForPunctuality(uint256 punctuality) internal pure returns (uint256) {
-        // assuming percentile 90%
-        // x7
-        uint256 calculated = PRECISION.mul(7);
-        return limitMultiplier(calculated);
-    }
-
-    function limitMultiplier(uint256 multiplier) internal pure returns (uint256) {
-        if (multiplier < PRECISION.mul(1)) {
-            multiplier = PRECISION.mul(1);
-        } else if (multiplier > MAX_PAYOUT_MULTIPLIER.mul(PRECISION)) {
-            multiplier = MAX_PAYOUT_MULTIPLIER.mul(PRECISION);
+        // assuming percentile 95%
+        if (punctuality <= 60) {
+            return PRECISION.mul(15);
+        } else {
+            return PRECISION.mul(7);
         }
-        return multiplier;
     }
 
     function resetRisk(bytes32 trainNumber) external onlySigner {
