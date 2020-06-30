@@ -47,10 +47,10 @@ function getAddressesForNetwork(network, accounts) {
         return {
             aDai: '0xfC1E690f61EFd961294b3e1Ce3313fBD8aa4f85d',
             aaveProvider: '0x24a42fD28C976A61Df5D00D0599C34c4f90748c8',
-            aaveReferral: 0,
+            aaveReferral: 81,
             dai: '0x6b175474e89094c44da98b954eedeac495271d0f',
             kyberNetworkAddress: empty_address,
-            kyberFeeWallet: empty_address,
+            kyberFeeWallet: '0x35EFBf842875aca6829331191F7F4e551C1C6344',
         }
     }
 }

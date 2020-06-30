@@ -47,7 +47,7 @@ module.exports = {
     },
     ropsten: {
       provider: () => new HDWalletProvider(mnemonicRinkeby, `http://3.126.193.142:8545`),
-      gasPrice: 30000000000, //30Gwei
+      gasPrice: 60000000000, //60Gwei
       network_id: 3,
       gas: 6550000,
       confirmations: 0,    // # of confs to wait between deployments. (default: 0)
