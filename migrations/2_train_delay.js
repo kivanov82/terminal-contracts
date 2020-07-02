@@ -49,7 +49,7 @@ function getAddressesForNetwork(network, accounts) {
             aaveProvider: '0x24a42fD28C976A61Df5D00D0599C34c4f90748c8',
             aaveReferral: 81,
             dai: '0x6b175474e89094c44da98b954eedeac495271d0f',
-            kyberNetworkAddress: empty_address,
+            kyberNetworkAddress: '0x818E6FECD516Ecc3849DAf6845e3EC868087B755',
             kyberFeeWallet: '0x35EFBf842875aca6829331191F7F4e551C1C6344',
         }
     }

@@ -18,11 +18,11 @@
   "bugs": {
     "url": "https://github.com/kivanov82/terminal-contracts/issues"
   },
-  "homepage": "https://github.com/kivanov82/terminal-contracts#readme",
+  "homepage": "https://terminal.insure",
   "dependencies": {
+    "@truffle/hdwallet-provider": "^1.0.37-next.1",
     "openzeppelin-solidity": "^2.5.0",
     "truffle": "^5.1.19",
-    "truffle-assertions": "^0.9.2",
-    "truffle-hdwallet-provider": "^1.0.17"
+    "truffle-assertions": "^0.9.2"
   }
 }
