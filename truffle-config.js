@@ -46,13 +46,14 @@ module.exports = {
       skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
     },
     ropsten: {
-      provider: () => new HDWalletProvider(mnemonicRopsten, `http://3.126.193.142:8545`),
+      provider: () => new HDWalletProvider(mnemonicRopsten, `https://ropsten.infura.io/v3/${infuraKey}`),
       gasPrice: 60000000000, //60Gwei
       network_id: 3,
       gas: 6550000,
       confirmations: 0,    // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
-      skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
+      skipDryRun: true,     // Skip dry run before migrations? (default: false for public nets )
+      websockets: false
     },
     live: {
       provider: () => new HDWalletProvider(mnemonicMain, `https://mainnet.infura.io/v3/${infuraKey}`),
